@@ -1,0 +1,4 @@
+// Root build file. The Android Gradle Plugin version is declared here and applied in app/build.gradle.
+plugins {
+    id 'com.android.application' version '9.2.1' apply false
+}

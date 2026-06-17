@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenFlow</string>
+    <string name="scan">Scan</string>
+    <string name="devices_tap_to_select">Devices (tap to select):</string>
+    <string name="scan_dfu_target">Scan DFU target</string>
+    <string name="select_firmware_zip">Select firmware (.zip)</string>
+    <string name="flash_dfu">Flash (DFU)</string>
+    <string name="status">Status: -</string>
+    <string name="refresh">Refresh</string>
+    <string name="not_connected">(not connected)</string>
+    <string name="apply">Apply</string>
+    <string name="ramp_down_stop">■ RAMP DOWN (STOP)</string>
+    <string name="beep">Beep</string>
+    <string name="play_melody">Play melody</string>
+    <string name="apply_defaults">Apply defaults</string>
+    <string name="log">Log:</string>
+    <string name="stop">Stop</string>
+    <string name="stop_scan">Stop scan</string>
+    <string name="status2">"Status: %s"</string>
+</resources>
