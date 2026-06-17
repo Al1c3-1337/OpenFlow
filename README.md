@@ -3,32 +3,7 @@
 Build with the help of AI (not AI alone!)
 
 Android app (package `de.al1c3.openflow`, label **OpenFlow**) for the Flow tDCS
-headset. Same protocol layer as the Linux/BlueZ version, different transport: `AndroidBleTransport`
-drives `android.bluetooth.BluetoothGatt` instead of blessed-bluez. The app scans, connects, dumps the
-GATT table, runs a read-only inventory, applies the original startup default settings, then
-offers guarded stimulation controls and Nordic Secure DFU firmware update.
-
-## Project layout
-
-```
-OpenFlow/
-├── settings.gradle            rootProject.name = "OpenFlow", repos
-├── build.gradle               AGP 8.7.2 (applied in app/)
-├── gradle.properties          useAndroidX=true, nonTransitiveRClass=true
-├── gradlew / gradlew.bat      Gradle wrapper scripts
-├── gradle/wrapper/            gradle-wrapper.jar + .properties (Gradle 8.9)
-└── app/
-    ├── build.gradle           namespace/applicationId de.al1c3.openflow, SDK levels, DFU dep
-    └── src/main/
-        ├── AndroidManifest.xml
-        ├── java/de/al1c3/openflow/
-        │   ├── BleTransport.java        AndroidBleTransport.java   DfuService.java
-        │   ├── StimDevice.java          StimUuids.java             Setting.java
-        │   ├── StimulationStatus.java   MainActivity.java
-        └── res/
-            ├── layout/activity_main.xml
-            └── values/strings.xml        app_name = "OpenFlow"
-```
+headset.
 
 ## Build / run
 
@@ -55,24 +30,6 @@ import, or create it yourself with `sdk.dir=/path/to/Android/sdk`.
 Targets: `compileSdk` 35, `targetSdk` 34, `minSdk` 26. AGP 8.7.2 / Gradle 8.9 are pinned in
 `build.gradle` and `gradle/wrapper/gradle-wrapper.properties` — Android Studio's AGP Upgrade
 Assistant will offer to bump them if your installed version is newer.
-
-## Verify against the real device
-
-- **`PRIMARY_SERVICE` = `4C5B0001-…` is confirmed** and is now used as the BLE scan filter, so
-  discovery only lists devices advertising it. Caveat: a service-UUID scan filter only matches if the
-  device puts that UUID in its *advertising* data. If the list stays empty, switch to the commented
-  unfiltered `startScan(null, …)` line in `MainActivity.startScan()`.
-- **`getSetting` read path is inferred** (write 1-byte selector, then read). Not exercised by the
-  read-only inventory; verify before relying on it.
-- **Telemetry decode types are assumptions** (resistance/currents = float32 LE, battery/error = u8).
-  Confirm against the printed values.
-- **Transition guards are best-effort.** `transitionAllowed()` encodes the state machine
-  (Idle → WaitForElectrodes → ElectrodesDetected → WaitForUser → UserDetected → RampUp → CurrentHold
-  → RampDown); the firm rule is "no RampUp unless UserDetected". Confirm the exact legal transitions
-  against the device and adjust if needed.
-- **`RAMP_UP_TIME_S` = 120 s** is the original app's `GetRampUpTime()` value (there is no RampUpTime
-  setting to read, so it lives as an app-side constant). It only affects
-  `CurrentRampUpRate = TargetCurrent / RampUpTime` = 0.002 / 120 ≈ 1.67e-5 A/s.
 
 ## Firmware update (DFU)
 
