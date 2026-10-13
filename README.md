@@ -20,7 +20,8 @@ and [Apple's device setup guide](https://developer.apple.com/documentation/xcode
 
 Use **Flutter 3.47.7** (Dart 3.13.5). The native targets are Android 8.0+ (API 26)
 and iOS 15+. Install Android SDK 37 and JDK 17 for Android. Building or running
-iOS requires **macOS and Xcode**, plus CocoaPods for the native plugins. Windows
+iOS requires **macOS and Xcode 26.1 or newer**, plus CocoaPods for the native plugins.
+CI pins Xcode 26.6 on macOS 26; the app still supports iOS 15 and newer. Windows
 can run the shared checks and Android builds; GitHub Actions can compile the iOS
 targets on your behalf without Apple credentials.
 

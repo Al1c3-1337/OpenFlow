@@ -69,10 +69,18 @@ jobs:
   ios:
     name: iOS simulator demo and unsigned device app
     needs: check
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
+    env:
+      # device_info_plus requires headers for APIs added in iOS 26.1.
+      # Pin Xcode independently of the app's iOS 15 deployment target.
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - name: Show Apple build toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}

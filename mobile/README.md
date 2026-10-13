@@ -7,7 +7,10 @@ in `../app` remains available and has its own unchanged Gradle build.
 Use Flutter **3.47.7** / Dart **3.13.5** with the committed `pubspec.lock`.
 Android requires API 26 or newer, JDK 17, and Android SDK 37 (AGP 9.2.1 /
 Gradle 9.5.1). iOS requires iOS 15
-or newer; compiling and running it requires macOS, Xcode, and CocoaPods.
+or newer; compiling it requires macOS, Xcode 26.1 or newer, and CocoaPods.
+The pinned device-info plugin references an API introduced in the iOS 26.1 SDK,
+so an older SDK fails at compile time even though the API is guarded at runtime.
+CI uses macOS 26 with Xcode 26.6; the app's deployment target remains iOS 15.
 
 ## Run and check
 
