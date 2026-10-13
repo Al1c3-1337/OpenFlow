@@ -2,6 +2,8 @@ name: Flutter Android and unsigned iOS
 
 on:
   push:
+    # Releases have their own build; do not repeat all native jobs on tag pushes.
+    branches: ['**']
     paths:
       - 'mobile/**'
       - '.github/workflows/mobile.yml'

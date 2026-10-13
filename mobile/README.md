@@ -1,8 +1,8 @@
 # OpenFlow for Android and iOS
 
-This directory is the Flutter port of OpenFlow. Android and iOS share the Dart UI,
-Bluetooth protocol, state guards, and firmware-update flow. The Java Android app
-in `../app` remains available and has its own unchanged Gradle build.
+This directory contains the OpenFlow app. Android and iOS share the Dart UI,
+Bluetooth protocol, state guards, and firmware-update flow. The former Java
+Android app and its build files remain available in Git history.
 
 Use Flutter **3.47.7** / Dart **3.13.5** with the committed `pubspec.lock`.
 Android requires API 26 or newer, JDK 17, and Android SDK 37 (AGP 9.2.1 /
@@ -37,9 +37,36 @@ with a physical headset. A simulator demo validates the UI and shared behavior;
 it does not test BLE or actually flash firmware.
 
 The Android APK is produced at `build/app/outputs/flutter-apk/app-debug.apk` and
-uses a local debug signing key. Release signing is intentionally not configured
-for this new app. Its package ID matches the original app, so differently signed
-installations cannot replace each other in place.
+uses a local debug signing key. Published GitHub releases provide APKs signed
+with the existing Android release key. The package ID matches the original app,
+so differently signed installations cannot replace each other in place.
+
+## GitHub releases
+
+Publishing a release tagged `vX.Y.Z` triggers
+[`../.github/workflows/release.yml`](../.github/workflows/release.yml). The workflow
+runs the shared checks, uses the tag as the app version, and attaches two assets
+to the published release:
+
+| Asset | Contents |
+| --- | --- |
+| `openflow-<version>-android.apk` | Flutter Android release APK signed with the existing release key. |
+| `openflow-<version>-ios-UNSIGNED.zip` | Unsigned Flutter iPhone/iPad release `.app`. |
+
+Android signing reads the repository secrets `KEYSTORE_BASE64`,
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. iOS compilation uses
+`--no-codesign` and needs no Apple signing credentials. A release build uses the
+real headset transport and omits the simulator demo to save runner minutes.
+
+The separate [`mobile.yml`](../.github/workflows/mobile.yml) workflow continues
+to provide shared checks, an Android debug APK, an iOS simulator demo, and an
+unsigned iOS device build for ordinary development and manual runs.
+
+Tag pushes do not start the development workflow. Publish the GitHub release to
+start the release build, or use the release workflow's manual dispatch with an
+existing release tag to rebuild it. Each release run uses `1000 + run_number` as
+the Android version code and iOS build number, so release builds advance beyond
+the former Java app's version code.
 
 ## iOS without a signing key
 
@@ -79,8 +106,8 @@ flutter build ios --release --no-codesign --dart-define=OPENFLOW_DEMO=false
 This compiles `build/ios/iphoneos/Runner.app`. It is an **unsigned build artifact
 and cannot be installed or launched on a physical iPhone or iPad**. Renaming a ZIP
 to `.ipa` does not supply the missing signature or provisioning. The CI artifact
-is named `openflow-ios-device-UNSIGNED-not-installable` to make this distinction
-visible at download time.
+is named `openflow-ios-device-UNSIGNED-not-installable`; the corresponding GitHub
+release asset is `openflow-<version>-ios-UNSIGNED.zip`.
 
 If physical iPhone testing becomes possible later, run `flutter pub get`, then
 `pod install` inside `ios`, and open `ios/Runner.xcworkspace` in Xcode. Arrange a
@@ -195,17 +222,19 @@ Before relying on a physical device build, validate these behaviors on each OS:
 
 - Bluetooth permission granted, denied, revoked, and Bluetooth switched off.
 - Device discovery, connection, complete GATT inventory, reads, and notification
-  payloads against the existing Java app.
+  payloads against the original implementation preserved in Git history.
 - Successful application of every startup setting before stimulation controls
   become available; legal state transitions and stop behavior.
 - Connection loss, reconnection, app background/resume, and elapsed-time handling.
 - Firmware ZIP selection, confirmation/cancellation, bootloader handoff, transfer,
   completion, and recovery from failure with compatible headset firmware.
 
-CI runs formatting, analyzer checks, shared tests, an Android debug build, a
-simulator demo build, and an unsigned iOS release build. Its unsigned iOS outputs
-are compilation artifacts; only a successful macOS job validates native iOS
-compilation, and real Bluetooth behavior still needs physical hardware.
+Development CI runs formatting, analyzer checks, shared tests, an Android debug
+build, a simulator demo build, and an unsigned iOS release build. The release
+workflow checks the shared code and builds the signed Android and unsigned iOS
+release assets without a simulator build. Unsigned iOS outputs are compilation
+artifacts; only a successful macOS job validates native iOS compilation, and real
+Bluetooth behavior still needs physical hardware.
 
 ## Telemetry encoding evidence
 
