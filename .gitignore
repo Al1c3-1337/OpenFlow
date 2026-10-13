@@ -9,3 +9,6 @@
 .cxx/
 /app/build/
 release.keystore
+
+# Original companion-app assemblies supplied for local protocol research.
+/out/

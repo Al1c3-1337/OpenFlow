@@ -1,0 +1,99 @@
+name: Flutter Android and unsigned iOS
+
+on:
+  push:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  check:
+    name: Analyze and test shared app
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+
+  android:
+    name: Android debug APK
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openflow-android-debug
+          path: mobile/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+  ios:
+    name: iOS simulator demo and unsigned device app
+    needs: check
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Build simulator demo without an Apple signing identity
+        run: flutter build ios --simulator --debug --no-codesign --dart-define=OPENFLOW_DEMO=true
+      - name: Package simulator app
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app build/openflow-ios-simulator-demo.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openflow-ios-simulator-demo
+          path: mobile/build/openflow-ios-simulator-demo.zip
+          if-no-files-found: error
+      - name: Compile device app without signing or provisioning
+        run: flutter build ios --release --no-codesign --dart-define=OPENFLOW_DEMO=false
+      - name: Package unsigned device app (not installable)
+        run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/openflow-ios-device-unsigned.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openflow-ios-device-UNSIGNED-not-installable
+          path: mobile/build/openflow-ios-device-unsigned.zip
+          if-no-files-found: error
