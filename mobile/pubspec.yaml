@@ -7,6 +7,7 @@ environment:
   sdk: '>=3.10.0 <4.0.0'
 
 dependencies:
+  archive: 4.5.2
   flutter:
     sdk: flutter
   flutter_reactive_ble: 5.6.0
@@ -14,6 +15,7 @@ dependencies:
   permission_handler: 13.0.2
   device_info_plus: 13.3.0
   file_picker: 13.1.0
+  path_provider: 2.1.6
 
 dev_dependencies:
   flutter_test:

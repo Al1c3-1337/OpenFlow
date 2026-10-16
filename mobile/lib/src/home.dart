@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_controller.dart';
+import 'flow_firmware_screen.dart';
 import 'protocol.dart';
 
 class OpenFlowHome extends StatefulWidget {
@@ -18,6 +19,8 @@ class OpenFlowHome extends StatefulWidget {
 class _OpenFlowHomeState extends State<OpenFlowHome>
     with WidgetsBindingObserver {
   final _connectionKey = GlobalKey();
+  final _firmwareKey = GlobalKey();
+  bool _downloadRouteOpen = false;
 
   OpenFlowController get controller => widget.controller;
 
@@ -130,6 +133,34 @@ class _OpenFlowHomeState extends State<OpenFlowHome>
     });
   }
 
+  Future<void> _downloadFirmware() async {
+    if (_downloadRouteOpen ||
+        controller.working ||
+        controller.updating ||
+        (controller.session.connected && !controller.session.canDfu) ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    _downloadRouteOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => FlowFirmwareScreen(controller: controller),
+        ),
+      );
+      if (!mounted) return;
+      final target = _firmwareKey.currentContext;
+      if (target != null && target.mounted) {
+        await Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    } finally {
+      _downloadRouteOpen = false;
+    }
+  }
+
   Future<void> _copyLogs() async {
     await Clipboard.setData(
       ClipboardData(text: controller.session.logs.join('\n')),
@@ -145,7 +176,11 @@ class _OpenFlowHomeState extends State<OpenFlowHome>
     animation: Listenable.merge([controller, controller.session]),
     builder: (context, _) => Scaffold(
       appBar: AppBar(
-        title: const Text('OpenFlow'),
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: _downloadFirmware,
+          child: const Text('OpenFlow'),
+        ),
         actions: [
           if (controller.demo)
             const Padding(
@@ -182,7 +217,10 @@ class _OpenFlowHomeState extends State<OpenFlowHome>
                             child: _connectionCard(),
                           ),
                           const SizedBox(height: 16),
-                          _firmwareCard(),
+                          KeyedSubtree(
+                            key: _firmwareKey,
+                            child: _firmwareCard(),
+                          ),
                         ],
                       );
                       final right = Column(

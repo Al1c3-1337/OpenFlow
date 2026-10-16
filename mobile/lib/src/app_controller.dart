@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'ble_transport.dart';
 import 'demo_transport.dart';
 import 'firmware_updater.dart';
+import 'flow_firmware_service.dart';
 import 'protocol.dart';
 import 'session.dart';
 
@@ -308,18 +309,45 @@ class OpenFlowController extends ChangeNotifier {
     }
     working = true;
     _notify();
-    Directory? pendingDirectory;
     try {
       final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['zip'],
       );
       if (file == null) return;
-      if (!file.name.toLowerCase().endsWith('.zip')) {
-        throw FormatException('Select a Nordic distribution .zip');
-      }
       // Copy a stream: Android document providers may give content:// URLs and
       // iOS document access must not outlive the picker's security scope.
+      await _stageFirmware(file.readAsByteStream(), file.name);
+    } finally {
+      working = false;
+      _notify();
+    }
+  }
+
+  /// Stage a separate copy so replacing a saved download cannot change the ZIP
+  /// used by Nordic DFU. Controller cleanup only removes this temporary copy.
+  Future<void> useSavedFirmware(SavedFirmware firmware) async {
+    _requireAvailable();
+    if (demo) throw StateError('Firmware updating is disabled in demo mode');
+    if (session.connected && !session.canDfu) {
+      throw StateError('Return the headset to Idle first');
+    }
+    working = true;
+    _notify();
+    try {
+      await _stageFirmware(File(firmware.path).openRead(), firmware.name);
+    } finally {
+      working = false;
+      _notify();
+    }
+  }
+
+  Future<void> _stageFirmware(Stream<List<int>> bytes, String name) async {
+    if (!name.toLowerCase().endsWith('.zip')) {
+      throw FormatException('Select a Nordic distribution .zip');
+    }
+    Directory? pendingDirectory;
+    try {
       pendingDirectory = await Directory.systemTemp.createTemp(
         'openflow-firmware-',
       );
@@ -328,7 +356,7 @@ class OpenFlowController extends ChangeNotifier {
       );
       final sink = destination.openWrite();
       try {
-        await sink.addStream(file.readAsByteStream());
+        await sink.addStream(bytes);
       } finally {
         await sink.close();
       }
@@ -336,23 +364,27 @@ class OpenFlowController extends ChangeNotifier {
         throw FormatException('Firmware file is empty');
       }
       if (_disposed) return;
+      if (session.connected && !session.canDfu) {
+        throw StateError('Return the headset to Idle first');
+      }
       final previousDirectory = _firmwareDirectory;
       _firmwareDirectory = pendingDirectory;
       pendingDirectory = null;
-      firmwareName = file.name;
+      firmwareName = name;
       _firmwarePath = destination.path;
       firmwareResult = null;
       firmwareNeedsRecovery = false;
+      dfuProgress = null;
       if (previousDirectory != null) {
-        await previousDirectory.delete(recursive: true);
+        await previousDirectory
+            .delete(recursive: true)
+            .catchError((Object _) => previousDirectory);
       }
-      session.addLog('Firmware selected: ${file.name}');
+      session.addLog('Firmware selected: $name');
     } finally {
       if (pendingDirectory != null) {
         await pendingDirectory.delete(recursive: true);
       }
-      working = false;
-      _notify();
     }
   }
 
